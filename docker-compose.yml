@@ -1,0 +1,17 @@
+services:
+  calibre-web-automated:
+    image: crocodilestick/calibre-web-automated:latest
+    container_name: cwa
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Asia/Kolkata}
+    volumes:
+      - ./cwa-config:/config
+      - ./calibre-library:/calibre-library
+      - ./cwa-book-ingest:/cwa-book-ingest
+    ports:
+      - "8083:8083"
+    mem_limit: 768m
+    mem_reservation: 256m

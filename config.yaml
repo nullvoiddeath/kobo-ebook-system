@@ -1,0 +1,28 @@
+paths:
+  ingest_dir: ./cwa-book-ingest
+  log_dir: ./logs
+  queue_file: ./book_queue.txt
+  seen_ids_file: ./data/seen_gutenberg_ids.json
+
+daily_content:
+  enabled: true
+  poem: true
+  essay: true
+  short_story: true
+  max_word_count: 10000
+  dedup_days: 90
+
+zlib:
+  delay_between_downloads: 3
+  max_downloads_per_run: 5
+  preferred_extensions:
+    - epub
+
+epub:
+  cover_bg_color: "#2C3E50"
+  cover_text_color: "#ECF0F1"
+
+logging:
+  level: INFO
+  max_file_size_mb: 10
+  backup_count: 3

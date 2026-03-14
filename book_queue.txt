@@ -1,0 +1,5 @@
+# Kobo Book Download Queue
+# Format: title | author (optional)
+# Lines starting with # are comments
+# Processed entries are prefixed with DONE: or FAILED:
+Dune | Frank Herbert
