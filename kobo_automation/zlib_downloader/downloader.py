@@ -1,11 +1,10 @@
-import asyncio
 import logging
 import re
+import time
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from zlibrary import AsyncZlib
-
+from kobo_automation.zlib_downloader.Zlibrary import Zlibrary
 from kobo_automation.zlib_downloader.queue import (
     QueueEntry,
     mark_done,
@@ -20,19 +19,19 @@ def _sanitize_filename(name: str) -> str:
     return re.sub(r'[^\w\s\-]', '', name).strip()[:80]
 
 
-def _score_result(result, title: str, author: str) -> float:
-    result_title = getattr(result, "name", "") or ""
+def _score_result(book: dict, title: str, author: str) -> float:
+    result_title = book.get("title", "")
     title_score = SequenceMatcher(None, title.lower(), result_title.lower()).ratio()
 
     if author:
-        result_author = getattr(result, "author", "") or ""
+        result_author = book.get("author", "")
         author_score = SequenceMatcher(None, author.lower(), result_author.lower()).ratio()
         return title_score * 0.6 + author_score * 0.4
 
     return title_score
 
 
-async def process_queue(config: dict) -> dict:
+def process_queue(config: dict) -> dict:
     paths = config.get("paths", {})
     zlib_cfg = config.get("zlib", {})
     queue_path = paths["queue_file"]
@@ -46,17 +45,25 @@ async def process_queue(config: dict) -> dict:
         log.info("Queue is empty")
         return {"downloaded": 0, "failed": 0, "skipped": 0}
 
+    # Auth: prefer remix tokens, fall back to email/password
+    remix_userid = config.get("zlib_remix_userid", "")
+    remix_userkey = config.get("zlib_remix_userkey", "")
     email = config.get("zlib_email", "")
     password = config.get("zlib_password", "")
-    if not email or not password:
-        log.error("Z-Library credentials not configured in .env")
-        for entry in entries:
-            mark_failed(queue_path, entry, "no_credentials")
-        return {"downloaded": 0, "failed": len(entries), "skipped": 0}
 
-    lib = AsyncZlib()
     try:
-        await lib.login(email, password)
+        if remix_userid and remix_userkey:
+            lib = Zlibrary(remix_userid=remix_userid, remix_userkey=remix_userkey)
+        elif email and password:
+            lib = Zlibrary(email=email, password=password)
+        else:
+            log.error("Z-Library credentials not configured in .env")
+            for entry in entries:
+                mark_failed(queue_path, entry, "no_credentials")
+            return {"downloaded": 0, "failed": len(entries), "skipped": 0}
+
+        if not lib.isLoggedIn():
+            raise RuntimeError("Login returned success=false")
     except Exception as e:
         log.error("Z-Library login failed: %s", e)
         for entry in entries:
@@ -68,22 +75,19 @@ async def process_queue(config: dict) -> dict:
     for entry in entries[:max_downloads]:
         try:
             log.info("Searching for: %s", entry.title)
-            search_results = await lib.search(
-                q=entry.title, extensions=extensions, count=5
+            results = lib.search(
+                message=entry.title, extensions=extensions, limit=5
             )
 
-            results_list = []
-            async for item in search_results:
-                results_list.append(item)
-
-            if not results_list:
+            books = results.get("books", []) if results else []
+            if not books:
                 log.warning("No results for: %s", entry.title)
                 mark_failed(queue_path, entry, "no_results")
                 stats["failed"] += 1
                 continue
 
             # Score and pick best match
-            scored = [(r, _score_result(r, entry.title, entry.author)) for r in results_list]
+            scored = [(b, _score_result(b, entry.title, entry.author)) for b in books]
             scored.sort(key=lambda x: x[1], reverse=True)
             best = scored[0][0]
             score = scored[0][1]
@@ -94,13 +98,21 @@ async def process_queue(config: dict) -> dict:
                 stats["failed"] += 1
                 continue
 
-            # Get book details and download
-            book = await best.fetch()
-            filename = f"{_sanitize_filename(entry.title)}.epub"
-            filepath = Path(ingest_dir) / filename
+            # Download book
+            result = lib.downloadBook(best)
+            if result is None:
+                log.error("Download returned None for: %s", entry.title)
+                mark_failed(queue_path, entry, "download_failed")
+                stats["failed"] += 1
+                continue
 
-            await book.download(str(filepath))
-            log.info("Downloaded: %s -> %s", entry.title, filepath)
+            filename, content = result
+            # Use our sanitized name but keep the original extension
+            ext = Path(filename).suffix if filename else ".epub"
+            out_path = Path(ingest_dir) / f"{_sanitize_filename(entry.title)}{ext}"
+            out_path.write_bytes(content)
+
+            log.info("Downloaded: %s -> %s", entry.title, out_path)
             mark_done(queue_path, entry)
             stats["downloaded"] += 1
 
@@ -109,7 +121,7 @@ async def process_queue(config: dict) -> dict:
             mark_failed(queue_path, entry, str(e)[:50])
             stats["failed"] += 1
 
-        await asyncio.sleep(delay)
+        time.sleep(delay)
 
     remaining = len(entries) - max_downloads
     if remaining > 0:

@@ -23,5 +23,7 @@ def load_config(project_root: Path | None = None) -> dict:
     # Inject env vars
     config["zlib_email"] = os.getenv("ZLIB_EMAIL", "")
     config["zlib_password"] = os.getenv("ZLIB_PASSWORD", "")
+    config["zlib_remix_userid"] = os.getenv("ZLIB_REMIX_USERID", "")
+    config["zlib_remix_userkey"] = os.getenv("ZLIB_REMIX_USERKEY", "")
 
     return config

@@ -43,7 +43,7 @@ def cmd_daily(config: dict) -> None:
 def cmd_download(config: dict) -> None:
     from kobo_automation.zlib_downloader.downloader import process_queue
 
-    stats = asyncio.run(process_queue(config))
+    stats = process_queue(config)
     print(f"Downloaded: {stats['downloaded']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}")
 
 
