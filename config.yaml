@@ -18,6 +18,9 @@ zlib:
   preferred_extensions:
     - epub
 
+kepubify:
+  binary: kepubify  # path to kepubify binary, or just "kepubify" if on PATH
+
 epub:
   cover_bg_color: "#2C3E50"
   cover_text_color: "#ECF0F1"
