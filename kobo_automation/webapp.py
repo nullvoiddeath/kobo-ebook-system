@@ -1,9 +1,8 @@
+import hashlib
 import logging
 import threading
 
-from functools import wraps
-
-from flask import Flask, Response, redirect, render_template_string, request, url_for
+from flask import Flask, redirect, render_template_string, request, session, url_for
 
 from kobo_automation.config import load_config
 from kobo_automation.zlib_downloader.downloader import process_queue
@@ -87,6 +86,7 @@ button {
 <div class="nav">
     <a href="/">Add Book</a>
     <a href="/status">Queue Status</a>
+    <a href="/logout">Logout</a>
 </div>
 {% block content %}{% endblock %}
 </body>
@@ -122,6 +122,69 @@ STATUS_TEMPLATE = (
     """<h2>Failed ({{ counts.failed }})</h2>"""
     """{% endblock %}"""
 )
+
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login - Book Downloader</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: serif;
+    font-size: 20px;
+    line-height: 1.5;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fff;
+    color: #000;
+}
+h1 { font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+label { display: block; font-weight: bold; margin-bottom: 6px; }
+input[type="text"], input[type="password"] {
+    width: 100%;
+    font-size: 20px;
+    padding: 12px;
+    border: 2px solid #000;
+    margin-bottom: 16px;
+    border-radius: 0;
+    -webkit-appearance: none;
+}
+button {
+    width: 100%;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 16px;
+    background: #000;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    min-height: 56px;
+}
+.error {
+    padding: 14px;
+    border: 2px solid #000;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+<h1>Book Downloader</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<form method="POST" action="/login">
+<label for="username">Username</label>
+<input type="text" id="username" name="username" required>
+<label for="password">Password</label>
+<input type="password" id="password" name="password" required>
+<button type="submit">Login</button>
+</form>
+</body>
+</html>
+"""
 
 
 def _parse_queue_lines(queue_path: str) -> list[dict]:
@@ -192,17 +255,38 @@ def create_app(config: dict = None) -> Flask:
     queue_path = config["paths"]["queue_file"]
     auth_user = config.get("webapp_username", "")
     auth_pass = config.get("webapp_password", "")
+    auth_enabled = bool(auth_user and auth_pass)
 
-    if auth_user and auth_pass:
+    # Secret key for session cookies
+    app.secret_key = hashlib.sha256(
+        (auth_pass or "dev-secret-key").encode()
+    ).hexdigest()
+
+    if auth_enabled:
         @app.before_request
-        def require_auth():
-            auth = request.authorization
-            if not auth or auth.username != auth_user or auth.password != auth_pass:
-                return Response(
-                    "Authentication required.",
-                    401,
-                    {"WWW-Authenticate": 'Basic realm="Book Downloader"'},
-                )
+        def require_login():
+            if request.endpoint in ("login",):
+                return
+            if not session.get("logged_in"):
+                return redirect(url_for("login"))
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if not auth_enabled:
+            return redirect(url_for("index"))
+        if request.method == "POST":
+            username = request.form.get("username", "")
+            password = request.form.get("password", "")
+            if username == auth_user and password == auth_pass:
+                session["logged_in"] = True
+                return redirect(url_for("index"))
+            return render_template_string(LOGIN_TEMPLATE, error="Wrong username or password.")
+        return render_template_string(LOGIN_TEMPLATE, error=None)
+
+    @app.route("/logout")
+    def logout():
+        session.clear()
+        return redirect(url_for("login"))
 
     @app.route("/")
     def index():
