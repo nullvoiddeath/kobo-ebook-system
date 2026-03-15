@@ -9,7 +9,7 @@ Automated eBook management pipeline for Kobo eReaders. Runs on an Ubuntu server 
 - 1 random essay from [Project Gutenberg](https://www.gutenberg.org/) (~4,600 essays)
 - 1 random short story from [Project Gutenberg](https://www.gutenberg.org/) (~5,700 stories)
 
-Each piece is formatted as an EPUB, pre-converted to KEPUB using [kepubify](https://pgaskin.net/kepubify/), and dropped into CWA for Kobo sync.
+Each piece is formatted as an EPUB with a generated cover, dropped into CWA for automatic KEPUB conversion and Kobo sync.
 
 **Book Downloads** — Add books to a simple text queue, and they're automatically downloaded from Z-Library, converted to KEPUB, and synced to your Kobo.
 
@@ -22,7 +22,7 @@ Each piece is formatted as an EPUB, pre-converted to KEPUB using [kepubify](http
 │                      │     │                              │
 │  - daily content     │────▶│  /cwa-book-ingest/           │
 │  - zlib downloader   │     │    → auto-import             │
-│  - kepubify convert  │     │                              │
+│                      │     │    → EPUB → KEPUB            │
 │                      │     │    → Kobo sync (:8083)       │
 └──────────────────────┘     └──────────────────────────────┘
 ```
@@ -34,7 +34,6 @@ Each piece is formatted as an EPUB, pre-converted to KEPUB using [kepubify](http
 - Ubuntu server (1GB RAM works, 2GB+ recommended)
 - Docker and Docker Compose
 - Python 3.11+
-- [kepubify](https://pgaskin.net/kepubify/) — EPUB→KEPUB converter
 
 ### 1. Clone and configure
 
@@ -50,28 +49,14 @@ nano .env
 nano config.yaml
 ```
 
-### 2. Install kepubify
-
-```bash
-# For ARM64 (OCI free tier Ampere)
-curl -sL https://github.com/pgaskin/kepubify/releases/latest/download/kepubify-linux-arm64 \
-  -o /usr/local/bin/kepubify && sudo chmod +x /usr/local/bin/kepubify
-
-# For x86_64
-# curl -sL https://github.com/pgaskin/kepubify/releases/latest/download/kepubify-linux-64bit \
-#   -o /usr/local/bin/kepubify && sudo chmod +x /usr/local/bin/kepubify
-
-kepubify --version  # verify installation
-```
-
-### 3. Install Python dependencies
+### 2. Install Python dependencies
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-### 4. Start CWA
+### 3. Start CWA
 
 ```bash
 docker compose up -d
@@ -83,7 +68,7 @@ CWA will be available at `http://<your-server>:8083`. Log in with default creden
 2. Enable **Kobo sync** and **Proxy unknown requests to Kobo Store**
 3. Set target conversion format to **KEPUB**
 
-### 5. Set up cron jobs
+### 4. Set up cron jobs
 
 ```bash
 bash cron/setup_cron.sh
@@ -93,7 +78,7 @@ This installs:
 - **2:00 AM daily** — fetch poem, essay, and short story
 - **Every 6 hours** — process the book download queue
 
-### 6. Connect your Kobo
+### 5. Connect your Kobo
 
 1. Connect the Kobo to your computer via USB
 2. Open `.kobo/Kobo eReader.conf`
@@ -103,7 +88,7 @@ This installs:
    ```
 4. Eject and sync
 
-### 7. (Recommended) Add swap for 1GB RAM servers
+### 6. (Recommended) Add swap for 1GB RAM servers
 
 ```bash
 sudo fallocate -l 1G /swapfile

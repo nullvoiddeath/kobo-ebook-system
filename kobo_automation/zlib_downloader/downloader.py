@@ -4,7 +4,6 @@ import time
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from kobo_automation.utils.kepub_converter import convert_to_kepub
 from kobo_automation.zlib_downloader.Zlibrary import Zlibrary
 from kobo_automation.zlib_downloader.queue import (
     QueueEntry,
@@ -40,7 +39,6 @@ def process_queue(config: dict) -> dict:
     delay = zlib_cfg.get("delay_between_downloads", 3)
     max_downloads = zlib_cfg.get("max_downloads_per_run", 5)
     extensions = zlib_cfg.get("preferred_extensions", ["epub"])
-    kepubify_bin = config.get("kepubify", {}).get("binary", "kepubify")
 
     entries = read_queue(queue_path)
     if not entries:
@@ -113,12 +111,6 @@ def process_queue(config: dict) -> dict:
             ext = Path(filename).suffix if filename else ".epub"
             out_path = Path(ingest_dir) / f"{_sanitize_filename(entry.title)}{ext}"
             out_path.write_bytes(content)
-
-            # Convert EPUB to KEPUB
-            try:
-                out_path = convert_to_kepub(out_path, kepubify_bin)
-            except Exception as e:
-                log.warning("KEPUB conversion failed for %s, keeping EPUB: %s", entry.title, e)
 
             log.info("Downloaded: %s -> %s", entry.title, out_path)
             mark_done(queue_path, entry)
