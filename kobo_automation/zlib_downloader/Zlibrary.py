@@ -309,9 +309,17 @@ class Zlibrary:
         headers = self.__headers.copy()
         headers["authority"] = ddl.split("/")[2]
 
-        res = requests.get(ddl, headers=headers)
-        if res.status_code == 200:
-            return filename, res.content
+        for attempt in range(3):
+            try:
+                res = requests.get(ddl, headers=headers, timeout=120, stream=True)
+                if res.status_code == 200:
+                    content = b""
+                    for chunk in res.iter_content(chunk_size=8192):
+                        content += chunk
+                    return filename, content
+            except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError):
+                if attempt == 2:
+                    raise
 
     def downloadBook(self, book: dict[str, str]) -> [(str, bytes), None]:
         return self.__getBookFile(book["id"], book["hash"])

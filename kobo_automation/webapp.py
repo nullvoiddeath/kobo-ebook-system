@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import threading
+from datetime import timedelta
 
 from flask import Flask, redirect, render_template_string, request, session, url_for
 
@@ -261,11 +262,12 @@ def create_app(config: dict = None) -> Flask:
     app.secret_key = hashlib.sha256(
         (auth_pass or "dev-secret-key").encode()
     ).hexdigest()
+    app.permanent_session_lifetime = timedelta(days=30)
 
     if auth_enabled:
         @app.before_request
         def require_login():
-            if request.endpoint in ("login",):
+            if request.endpoint in ("login", "static"):
                 return
             if not session.get("logged_in"):
                 return redirect(url_for("login"))
@@ -278,6 +280,7 @@ def create_app(config: dict = None) -> Flask:
             username = request.form.get("username", "")
             password = request.form.get("password", "")
             if username == auth_user and password == auth_pass:
+                session.permanent = True
                 session["logged_in"] = True
                 return redirect(url_for("index"))
             return render_template_string(LOGIN_TEMPLATE, error="Wrong username or password.")
