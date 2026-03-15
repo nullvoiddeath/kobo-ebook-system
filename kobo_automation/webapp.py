@@ -1,7 +1,9 @@
 import logging
 import threading
 
-from flask import Flask, redirect, render_template_string, request, url_for
+from functools import wraps
+
+from flask import Flask, Response, redirect, render_template_string, request, url_for
 
 from kobo_automation.config import load_config
 from kobo_automation.zlib_downloader.downloader import process_queue
@@ -188,6 +190,19 @@ def create_app(config: dict = None) -> Flask:
     app.jinja_loader = _InlineLoader(PAGE_TEMPLATE)
 
     queue_path = config["paths"]["queue_file"]
+    auth_user = config.get("webapp_username", "")
+    auth_pass = config.get("webapp_password", "")
+
+    if auth_user and auth_pass:
+        @app.before_request
+        def require_auth():
+            auth = request.authorization
+            if not auth or auth.username != auth_user or auth.password != auth_pass:
+                return Response(
+                    "Authentication required.",
+                    401,
+                    {"WWW-Authenticate": 'Basic realm="Book Downloader"'},
+                )
 
     @app.route("/")
     def index():

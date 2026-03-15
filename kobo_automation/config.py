@@ -26,4 +26,8 @@ def load_config(project_root: Path | None = None) -> dict:
     config["zlib_remix_userid"] = os.getenv("ZLIB_REMIX_USERID", "")
     config["zlib_remix_userkey"] = os.getenv("ZLIB_REMIX_USERKEY", "")
 
+    # Webapp auth
+    config["webapp_username"] = os.getenv("WEBAPP_USERNAME", "")
+    config["webapp_password"] = os.getenv("WEBAPP_PASSWORD", "")
+
     return config
