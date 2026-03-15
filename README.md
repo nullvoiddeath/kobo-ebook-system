@@ -118,8 +118,8 @@ Generate a Cloudflare origin certificate (Dashboard → SSL/TLS → Origin Serve
 
 ```bash
 sudo mkdir -p /etc/ssl/cloudflare
-# Save certificate to /etc/ssl/cloudflare/fromthevo.id.pem
-# Save private key to /etc/ssl/cloudflare/fromthevo.id.key
+# Save certificate to /etc/ssl/cloudflare/yourdomain.com.pem
+# Save private key to /etc/ssl/cloudflare/yourdomain.com.key
 ```
 
 Create `/etc/nginx/sites-available/kobo`:
@@ -127,10 +127,10 @@ Create `/etc/nginx/sites-available/kobo`:
 ```nginx
 server {
     listen 443 ssl;
-    server_name books.fromthevo.id;
+    server_name books.yourdomain.com;
 
-    ssl_certificate     /etc/ssl/cloudflare/fromthevo.id.pem;
-    ssl_certificate_key /etc/ssl/cloudflare/fromthevo.id.key;
+    ssl_certificate     /etc/ssl/cloudflare/yourdomain.com.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/yourdomain.com.key;
 
     location / {
         proxy_pass http://127.0.0.1:8084;
@@ -143,10 +143,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name calibre.fromthevo.id;
+    server_name calibre.yourdomain.com;
 
-    ssl_certificate     /etc/ssl/cloudflare/fromthevo.id.pem;
-    ssl_certificate_key /etc/ssl/cloudflare/fromthevo.id.key;
+    ssl_certificate     /etc/ssl/cloudflare/yourdomain.com.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/yourdomain.com.key;
 
     client_max_body_size 200M;
 
@@ -161,11 +161,11 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:8083;
-        proxy_set_header Host              calibre.fromthevo.id;
+        proxy_set_header Host              calibre.yourdomain.com;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Host  calibre.fromthevo.id;
+        proxy_set_header X-Forwarded-Host  calibre.yourdomain.com;
         proxy_set_header X-Script-Name     "";
     }
 }
@@ -233,7 +233,7 @@ sudo systemctl enable --now kobo-webapp
 2. Open `.kobo/Kobo eReader.conf`
 3. Under `[OneStoreServices]`, set:
    ```
-   api_endpoint=https://calibre.fromthevo.id/kobo/<your-sync-token>
+   api_endpoint=https://calibre.yourdomain.com/kobo/<your-sync-token>
    ```
    (Get the sync token from CWA's admin panel under your user profile)
 4. Eject and sync
@@ -242,7 +242,7 @@ sudo systemctl enable --now kobo-webapp
 
 ### Web Interface
 
-Open `https://books.fromthevo.id` on your Kobo's browser or any device. Log in with your webapp credentials, enter a book title and optional author, and tap **Download Book**.
+Open `https://books.yourdomain.com` on your Kobo's browser or any device. Log in with your webapp credentials, enter a book title and optional author, and tap **Download Book**.
 
 ### CLI
 
