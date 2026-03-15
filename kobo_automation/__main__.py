@@ -78,6 +78,18 @@ def cmd_status(config: dict) -> None:
             print(f"  - {e.title}{author_str}")
 
 
+def cmd_serve(config: dict) -> None:
+    from kobo_automation.webapp import create_app
+
+    webapp_cfg = config.get("webapp", {})
+    host = webapp_cfg.get("host", "0.0.0.0")
+    port = webapp_cfg.get("port", 8084)
+
+    app = create_app(config)
+    print(f"Starting book downloader at http://{host}:{port}")
+    app.run(host=host, port=port, debug=False)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="kobo_automation", description="Kobo eBook automation")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -90,6 +102,7 @@ def main() -> None:
     add_parser.add_argument("--author", default="", help="Book author")
 
     sub.add_parser("status", help="Show queue status")
+    sub.add_parser("serve", help="Start the book download web interface")
 
     args = parser.parse_args()
     config = load_config()
@@ -103,6 +116,8 @@ def main() -> None:
         cmd_add(config, args.title, args.author)
     elif args.command == "status":
         cmd_status(config)
+    elif args.command == "serve":
+        cmd_serve(config)
 
 
 if __name__ == "__main__":

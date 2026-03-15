@@ -22,6 +22,10 @@ epub:
   cover_bg_color: "#2C3E50"
   cover_text_color: "#ECF0F1"
 
+webapp:
+  host: 0.0.0.0
+  port: 8084
+
 logging:
   level: INFO
   max_file_size_mb: 10

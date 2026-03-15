@@ -114,6 +114,38 @@ python -m kobo_automation download
 python -m kobo_automation status
 ```
 
+## Web Interface (Kobo Browser)
+
+A lightweight web UI lets you queue book downloads directly from your Kobo's built-in browser — no SSH or laptop needed.
+
+```bash
+# Start the web server (runs alongside CWA)
+python -m kobo_automation serve
+```
+
+Then open `http://<your-server>:8084` on your Kobo or any browser. Enter a book title and optional author, tap **Download Book**, and it gets queued and downloaded automatically.
+
+To keep it running permanently, add a systemd service:
+
+```bash
+sudo tee /etc/systemd/system/kobo-webapp.service > /dev/null <<EOF
+[Unit]
+Description=Kobo Book Downloader Web UI
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/kobo-ebook-system
+ExecStart=/home/ubuntu/kobo-ebook-system/.venv/bin/python -m kobo_automation serve
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl enable --now kobo-webapp
+```
+
 ## Book Queue
 
 Edit `book_queue.txt` directly — one book per line:
@@ -143,6 +175,7 @@ FAILED: Nonexistent Book | no_results
 ```
 kobo_automation/
 ├── __main__.py              # CLI entry point
+├── webapp.py                # Flask web UI for Kobo browser
 ├── config.py                # Config loader
 ├── daily_content/
 │   ├── runner.py            # Daily fetch orchestrator
