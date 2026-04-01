@@ -74,10 +74,15 @@ def process_queue(config: dict) -> dict:
 
     for entry in entries[:max_downloads]:
         try:
-            log.info("Searching for: %s", entry.title)
-            results = lib.search(
-                message=entry.title, extensions=extensions, limit=5
-            )
+            year_str = f" (year: {entry.year})" if entry.year else ""
+            log.info("Searching for: %s%s", entry.title, year_str)
+
+            search_kwargs = dict(message=entry.title, extensions=extensions, limit=5)
+            if entry.year:
+                search_kwargs["yearFrom"] = int(entry.year)
+                search_kwargs["yearTo"] = int(entry.year)
+
+            results = lib.search(**search_kwargs)
 
             books = results.get("books", []) if results else []
             if not books:

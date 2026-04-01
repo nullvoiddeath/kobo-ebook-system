@@ -47,11 +47,16 @@ def cmd_download(config: dict) -> None:
     print(f"Downloaded: {stats['downloaded']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}")
 
 
-def cmd_add(config: dict, title: str, author: str) -> None:
+def cmd_add(config: dict, title: str, author: str, year: str) -> None:
     from kobo_automation.zlib_downloader.queue import add_to_queue
 
-    add_to_queue(config["paths"]["queue_file"], title, author)
-    print(f"Added: {title}" + (f" by {author}" if author else ""))
+    add_to_queue(config["paths"]["queue_file"], title, author, year)
+    desc = title
+    if author:
+        desc += f" by {author}"
+    if year:
+        desc += f" ({year})"
+    print(f"Added: {desc}")
 
 
 def cmd_status(config: dict) -> None:
@@ -100,6 +105,7 @@ def main() -> None:
     add_parser = sub.add_parser("add", help="Add a book to the download queue")
     add_parser.add_argument("title", help="Book title")
     add_parser.add_argument("--author", default="", help="Book author")
+    add_parser.add_argument("--year", default="", help="Publication year")
 
     sub.add_parser("status", help="Show queue status")
     sub.add_parser("serve", help="Start the book download web interface")
@@ -113,7 +119,7 @@ def main() -> None:
     elif args.command == "download":
         cmd_download(config)
     elif args.command == "add":
-        cmd_add(config, args.title, args.author)
+        cmd_add(config, args.title, args.author, args.year)
     elif args.command == "status":
         cmd_status(config)
     elif args.command == "serve":

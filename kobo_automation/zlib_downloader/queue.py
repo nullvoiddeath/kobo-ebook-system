@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 class QueueEntry:
     title: str
     author: str
+    year: str
     line_number: int
     raw_line: str
 
@@ -30,7 +31,8 @@ def read_queue(queue_path: str) -> list[QueueEntry]:
             parts = [p.strip() for p in line.split("|")]
             title = parts[0]
             author = parts[1] if len(parts) > 1 else ""
-            entries.append(QueueEntry(title=title, author=author, line_number=i, raw_line=line))
+            year = parts[2] if len(parts) > 2 else ""
+            entries.append(QueueEntry(title=title, author=author, year=year, line_number=i, raw_line=line))
 
     return entries
 
@@ -52,11 +54,14 @@ def _update_line(queue_path: str, entry: QueueEntry, new_line: str) -> None:
     path.write_text("".join(lines))
 
 
-def add_to_queue(queue_path: str, title: str, author: str = "") -> None:
+def add_to_queue(queue_path: str, title: str, author: str = "", year: str = "") -> None:
     path = Path(queue_path)
-    line = title
-    if author:
-        line = f"{title} | {author}"
+    parts = [title]
+    if author or year:
+        parts.append(author)
+    if year:
+        parts.append(year)
+    line = " | ".join(parts)
     with open(path, "a") as f:
         f.write(line + "\n")
     log.info("Added to queue: %s", line)

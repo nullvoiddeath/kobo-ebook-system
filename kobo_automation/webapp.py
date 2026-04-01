@@ -102,6 +102,8 @@ INDEX_TEMPLATE = (
     """<input type="text" id="title" name="title" required placeholder="e.g. Dune">"""
     """<label for="author">Author (optional)</label>"""
     """<input type="text" id="author" name="author" placeholder="e.g. Frank Herbert">"""
+    """<label for="year">Year (optional)</label>"""
+    """<input type="text" id="year" name="year" placeholder="e.g. 1532" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">"""
     """<button type="submit">Download Book</button>"""
     """</form>"""
     """<h2>Recent Queue</h2>"""
@@ -117,7 +119,7 @@ STATUS_TEMPLATE = (
     """{% extends "base" %}{% block content %}"""
     """<h2>Pending ({{ counts.pending }})</h2>"""
     """{% if pending %}{% for e in pending %}"""
-    """<div class="queue-item">{{ e.title }}{% if e.author %} — {{ e.author }}{% endif %}</div>"""
+    """<div class="queue-item">{{ e.title }}{% if e.author %} — {{ e.author }}{% endif %}{% if e.year %} ({{ e.year }}){% endif %}</div>"""
     """{% endfor %}{% else %}<p class="empty">No pending books.</p>{% endif %}"""
     """<h2>Completed ({{ counts.done }})</h2>"""
     """<h2>Failed ({{ counts.failed }})</h2>"""
@@ -304,11 +306,12 @@ def create_app(config: dict = None) -> Flask:
     def add():
         title = request.form.get("title", "").strip()
         author = request.form.get("author", "").strip()
+        year = request.form.get("year", "").strip()
 
         if not title:
             return redirect(url_for("index", message="Title is required."))
 
-        add_to_queue(queue_path, title, author)
+        add_to_queue(queue_path, title, author, year)
 
         # Kick off download in background
         thread = threading.Thread(
@@ -316,7 +319,7 @@ def create_app(config: dict = None) -> Flask:
         )
         thread.start()
 
-        desc = title + (f" by {author}" if author else "")
+        desc = title + (f" by {author}" if author else "") + (f" ({year})" if year else "")
         return redirect(url_for("index", message=f"Queued: {desc}. Downloading..."))
 
     @app.route("/status")
