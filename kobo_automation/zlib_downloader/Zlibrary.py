@@ -7,7 +7,7 @@ For more information, see:
 https://github.com/bipinkrish/Zlibrary-API/
 """
 
-import requests
+from curl_cffi import requests
 
 
 class Zlibrary:
@@ -26,12 +26,7 @@ class Zlibrary:
         self.__domain = "1lib.sk"
 
         self.__loggedin = False
-        self.__headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-        }
+        self.__headers = {}
         self.__cookies = {
             "siteLanguageV2": "en",
         }
@@ -98,6 +93,7 @@ class Zlibrary:
             data=data,
             cookies=self.__cookies,
             headers=self.__headers,
+            impersonate="chrome",
         ).json()
 
     def __makeGetRequest(
@@ -112,6 +108,7 @@ class Zlibrary:
             params=params,
             cookies=self.__cookies if cookies is None else cookies,
             headers=self.__headers,
+            impersonate="chrome",
         ).json()
 
     def getProfile(self) -> dict[str, str]:
@@ -287,7 +284,7 @@ class Zlibrary:
         )
 
     def __getImageData(self, url: str) -> requests.Response.content:
-        res = requests.get(url, headers=self.__headers)
+        res = requests.get(url, headers=self.__headers, impersonate="chrome")
         if res.status_code == 200:
             return res.content
 
@@ -311,7 +308,7 @@ class Zlibrary:
 
         for attempt in range(3):
             try:
-                res = requests.get(ddl, headers=headers, timeout=120, stream=True)
+                res = requests.get(ddl, headers=headers, timeout=120, stream=True, impersonate="chrome")
                 if res.status_code == 200:
                     content = b""
                     for chunk in res.iter_content(chunk_size=8192):
