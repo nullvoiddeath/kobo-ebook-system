@@ -283,12 +283,12 @@ class Zlibrary:
             },
         )
 
-    def __getImageData(self, url: str) -> requests.Response.content:
+    def __getImageData(self, url: str) -> bytes | None:
         res = requests.get(url, headers=self.__headers, impersonate="chrome")
         if res.status_code == 200:
             return res.content
 
-    def getImage(self, book: dict[str, str]) -> requests.Response.content:
+    def getImage(self, book: dict[str, str]) -> bytes | None:
         return self.__getImageData(book["cover"])
 
     def __getBookFile(self, bookid: [int, str], hashid: str) -> [(str, bytes), None]:
